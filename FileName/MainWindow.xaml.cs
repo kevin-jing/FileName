@@ -1,18 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FileName
 {
@@ -83,7 +76,7 @@ namespace FileName
         {
            foreach (string fn in listView_SelectedFiles.Items)
             {
-                string on = System.IO.Path.Combine(dir, fn);
+                string on = Path.Combine(dir, fn);
 
                 try
                 {
@@ -97,7 +90,7 @@ namespace FileName
                         DateTime date = DateTime.Parse(sDate);
                         var d = date.ToString("MM.dd-");
                         nn = d + fn;
-                        nn = System.IO.Path.Combine(dir, nn);
+                        nn = Path.Combine(dir, nn);
                     }
 
                     File.Move(on, nn);
@@ -109,6 +102,51 @@ namespace FileName
             }
             updateFileList();
         }
+
+        private void changePictureNameByDateShot2()
+        {
+            System.Text.ASCIIEncoding encoding = new System.Text.ASCIIEncoding();
+            foreach (string fn in listView_SelectedFiles.Items)
+            {
+                string on = Path.Combine(dir, fn);
+                string t,
+                       exifDTOrig = "",
+                       dateTime = "";
+                try
+                {
+                    using (var image = System.Drawing.Image.FromFile(on))
+                    {
+                        foreach (var pi in image.PropertyItems)
+                        {
+                            if (pi.Id == 0x0132)
+                                dateTime = encoding.GetString(pi.Value);
+                            if (pi.Id == 0x9003)
+                            {
+                                exifDTOrig = encoding.GetString(pi.Value);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+                if (exifDTOrig != "")
+                    t = exifDTOrig;
+                else
+                    t = dateTime;
+                t = t.Substring(0, 19);
+                DateTime date = DateTime.ParseExact(t, "yyyy:MM:dd hh:mm:ss",
+                    CultureInfo.InvariantCulture);
+                
+                var d = date.ToString("MM.dd-");
+                string nn;
+                nn = d + fn;
+                File.Move(on, Path.Combine(dir, nn));
+            }
+        }
+
         private void mainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (e.PreviousSize.Height != 0)
